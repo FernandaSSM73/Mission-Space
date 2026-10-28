@@ -1,0 +1,281 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MISSION: SPACE — Diseño de Misiones Espaciales</title>
+<style>
+:root{
+  --bg:#070b18; --panel:#10172b; --panel2:#151e38; --line:#2b3a61;
+  --text:#eef3ff; --muted:#aab7d6; --accent:#67d5ff; --good:#62e6a7;
+  --warn:#ffd166; --bad:#ff6b7a;
+}
+*{box-sizing:border-box}
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:radial-gradient(circle at 20% 10%,#17264b 0,#070b18 45%,#04060d 100%);color:var(--text)}
+button,select{font:inherit}
+.container{max-width:1150px;margin:auto;padding:24px}
+header{display:flex;justify-content:space-between;gap:20px;align-items:center;margin-bottom:20px}
+.logo{font-weight:900;letter-spacing:2px;color:var(--accent);font-size:24px}
+.badge{border:1px solid var(--line);padding:8px 12px;border-radius:999px;color:var(--muted);font-size:13px}
+h1{font-size:clamp(32px,6vw,64px);margin:15px 0 8px}
+h2{margin-top:0}
+.subtitle{color:var(--muted);font-size:18px;line-height:1.5}
+.panel{background:rgba(16,23,43,.92);border:1px solid var(--line);border-radius:18px;padding:22px;box-shadow:0 12px 35px rgba(0,0,0,.25);margin-bottom:18px}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:14px}
+.card{background:var(--panel2);border:1px solid var(--line);border-radius:14px;padding:16px;cursor:pointer;transition:.15s}
+.card:hover{transform:translateY(-2px);border-color:var(--accent)}
+.card.selected{border-color:var(--accent);box-shadow:0 0 0 2px rgba(103,213,255,.15)}
+.card h3{margin:0 0 8px}
+.card p{color:var(--muted);font-size:14px;line-height:1.45}
+.stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.stat{background:#0b1122;border:1px solid var(--line);padding:12px;border-radius:12px}
+.stat b{display:block;font-size:21px;margin-top:5px}
+.bar{height:8px;background:#222c49;border-radius:99px;overflow:hidden;margin-top:7px}
+.fill{height:100%;background:var(--accent);transition:.3s}
+.controls{display:flex;justify-content:space-between;gap:10px;margin-top:18px}
+button{border:0;border-radius:12px;padding:12px 18px;background:var(--accent);color:#03101a;font-weight:800;cursor:pointer}
+button.secondary{background:#202b49;color:var(--text)}
+button.danger{background:var(--bad);color:#21050a}
+.hidden{display:none}
+.event{border-left:4px solid var(--warn);padding:12px 15px;background:#171a29;border-radius:10px;margin-bottom:14px}
+.result{text-align:center}
+.score{font-size:68px;font-weight:900;color:var(--good)}
+ul{line-height:1.7;color:var(--muted)}
+.small{font-size:13px;color:var(--muted)}
+.progress{display:flex;gap:6px;margin-bottom:18px}
+.step{height:7px;flex:1;background:#202b49;border-radius:99px}
+.step.active{background:var(--accent)}
+@media(max-width:700px){.stats{grid-template-columns:repeat(2,1fr)} header{align-items:flex-start;flex-direction:column}.controls{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="container">
+<header>
+  <div class="logo">🚀 MISSION: SPACE</div>
+  <div class="badge">Prototipo educativo • NASA Space Apps</div>
+</header>
+
+<section id="start" class="panel">
+  <h1>Diseña. Decide. Sobrevive.</h1>
+  <p class="subtitle">Diseña una misión espacial con recursos limitados. Cada decisión afecta la masa, energía, comunicaciones, presupuesto y ciencia.</p>
+  <div class="panel" style="background:#0b1122">
+    <h2>🎯 Objetivo del juego</h2>
+    <ul>
+      <li>Construye una misión científicamente útil.</li>
+      <li>Mantén la masa y el presupuesto dentro de los límites.</li>
+      <li>Prepárate para eventos inesperados.</li>
+      <li>Consigue la mayor puntuación posible.</li>
+    </ul>
+    <button onclick="startGame()">Comenzar misión</button>
+  </div>
+</section>
+
+<section id="game" class="hidden">
+  <div class="progress" id="progress"></div>
+
+  <div class="panel">
+    <h2 id="stageTitle"></h2>
+    <p class="subtitle" id="stageText"></p>
+    <div id="stageContent"></div>
+    <div class="controls">
+      <button class="secondary" onclick="resetGame()">Reiniciar</button>
+      <button id="nextBtn" onclick="nextStage()">Continuar →</button>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>📊 Estado de la misión</h3>
+    <div class="stats" id="stats"></div>
+  </div>
+</section>
+
+<section id="result" class="hidden panel result">
+  <h1>🏆 Resultado de la misión</h1>
+  <div class="score" id="score"></div>
+  <h2 id="resultTitle"></h2>
+  <p class="subtitle" id="resultText"></p>
+  <div class="grid" id="resultCards"></div>
+  <div class="panel" style="text-align:left;background:#0b1122">
+    <h3>🧠 ¿Qué aprendiste?</h3>
+    <ul id="lessons"></ul>
+  </div>
+  <button onclick="startGame()">Jugar otra misión</button>
+</section>
+</div>
+
+<script>
+const stages = [
+  {title:"1. Elige el objetivo", text:"Primero decide qué ciencia quieres obtener. Los objetivos más ambiciosos consumen más recursos."},
+  {title:"2. Diseña la nave", text:"Elige sistemas de energía, comunicación y protección. No puedes tenerlo todo."},
+  {title:"3. Instrumentos científicos", text:"Selecciona los instrumentos que generarán el valor científico de la misión."},
+  {title:"4. Vehículo de lanzamiento", text:"Tu lanzador debe tener suficiente capacidad de masa y no puede superar tu presupuesto."},
+  {title:"5. Operación", text:"Una misión real puede encontrar problemas. Toma una decisión ante un evento inesperado."}
+];
+
+let stage=0;
+let state={budget:100,mass:0,energy:20,comm:20,science:0,safety:20,success:0};
+let choices={objective:null,systems:[],instruments:[],launcher:null,event:null};
+
+const options={
+objective:[
+ {n:"Observar Marte",p:10,m:80,e:10,c:15,s:15,b:10},
+ {n:"Buscar señales de agua",p:20,m:120,e:18,c:20,s:30,b:20},
+ {n:"Estudiar la atmósfera",p:25,m:140,e:22,c:25,s:25,b:25},
+ {n:"Misión científica avanzada",p:35,m:190,e:30,c:30,s:45,b:35}
+],
+systems:[
+ {n:"Paneles solares básicos",p:10,m:50,e:35,c:0,s:5},
+ {n:"Paneles solares avanzados",p:20,m:100,e:65,c:0,s:8},
+ {n:"Antena básica",p:8,m:30,e:0,c:30,s:2},
+ {n:"Antena grande",p:15,m:70,e:0,c:65,s:5},
+ {n:"Protección básica",p:5,m:40,e:0,c:0,s:18},
+ {n:"Protección reforzada",p:15,m:90,e:0,c:0,s:35}
+],
+instruments:[
+ {n:"📷 Cámara",p:10,m:20,e:8,c:8,s:0},
+ {n:"🌡️ Sensor atmosférico",p:15,m:30,e:12,c:15,s:0},
+ {n:"💧 Detector de agua",p:25,m:50,e:18,c:25,s:0},
+ {n:"🧪 Laboratorio miniatura",p:35,m:90,e:25,c:40,s:0}
+],
+launcher:[
+ {n:"🚀 Lanzador pequeño",p:15,m:-500,e:0,c:0,s:0,cap:500},
+ {n:"🚀 Lanzador mediano",p:30,m:-1000,e:0,c:0,s:0,cap:1000},
+ {n:"🚀 Lanzador pesado",p:50,m:-2000,e:0,c:0,s:0,cap:2000}
+]
+};
+
+function startGame(){
+ document.getElementById("start").classList.add("hidden");
+ document.getElementById("result").classList.add("hidden");
+ document.getElementById("game").classList.remove("hidden");
+ resetState();
+ render();
+}
+function resetState(){
+ stage=0;
+ state={budget:100,mass:0,energy:20,comm:20,science:0,safety:20,success:0};
+ choices={objective:null,systems:[],instruments:[],launcher:null,event:null};
+}
+function resetGame(){startGame()}
+function render(){
+ renderProgress(); renderStats(); renderStage();
+}
+function renderProgress(){
+ document.getElementById("progress").innerHTML=stages.map((_,i)=>`<div class="step ${i===stage?'active':''}"></div>`).join("");
+}
+function renderStats(){
+ const arr=[
+  ["💰","Presupuesto",Math.round(state.budget),100],
+  ["⚖️","Masa",Math.round(state.mass),1000],
+  ["🔋","Energía",Math.round(state.energy),100],
+  ["📡","Comunicación",Math.round(state.comm),100],
+  ["🔬","Ciencia",Math.round(state.science),100]
+ ];
+ document.getElementById("stats").innerHTML=arr.map(x=>`
+ <div class="stat"><span>${x[0]} ${x[1]}</span><b>${x[2]}</b><div class="bar"><div class="fill" style="width:${Math.min(100,Math.max(0,x[2]/x[3]*100))}%"></div></div></div>`).join("");
+}
+function renderStage(){
+ document.getElementById("stageTitle").textContent=stages[stage].title;
+ document.getElementById("stageText").textContent=stages[stage].text;
+ const c=document.getElementById("stageContent");
+ if(stage===0) c.innerHTML=cards(options.objective,'objective',false);
+ if(stage===1) c.innerHTML=cards(options.systems,'systems',true);
+ if(stage===2) c.innerHTML=cards(options.instruments,'instruments',true);
+ if(stage===3) c.innerHTML=cards(options.launcher,'launcher',false);
+ if(stage===4) c.innerHTML=eventHTML();
+ document.getElementById("nextBtn").textContent=stage===4?"Simular misión 🚀":"Continuar →";
+}
+function cards(list,type,multi){
+ return `<div class="grid">${list.map((o,i)=>{
+ let selected=multi?choices[type].includes(i):choices[type]===i;
+ return `<div class="card ${selected?'selected':''}" onclick="selectOption('${type}',${i},${multi})">
+ <h3>${o.n}</h3>
+ <p>💰 Costo: ${o.p} &nbsp; ⚖️ Masa: ${o.m} kg</p>
+ ${o.e?`<p>🔋 Energía: +${o.e}</p>`:''}
+ ${o.c?`<p>📡/🔬 Aporte: +${o.c}</p>`:''}
+ ${o.s?`<p>🛡️ Seguridad: +${o.s}</p>`:''}
+ ${o.cap?`<p>📦 Capacidad: ${o.cap} kg</p>`:''}
+ </div>`}).join("")}</div>`;
+}
+function selectOption(type,i,multi){
+ if(type==="systems"||type==="instruments"){
+   const arr=choices[type];
+   if(arr.includes(i)) arr.splice(arr.indexOf(i),1); else arr.push(i);
+ }else choices[type]=i;
+ applyState();
+ render();
+}
+function applyState(){
+ state={budget:100,mass:0,energy:20,comm:20,science:0,safety:20,success:0};
+ if(choices.objective!==null) add(options.objective[choices.objective]);
+ choices.systems.forEach(i=>add(options.systems[i]));
+ choices.instruments.forEach(i=>add(options.instruments[i]));
+ if(choices.launcher!==null) {
+   const l=options.launcher[choices.launcher];
+   state.budget-=l.p;
+   state.launcherCap=l.cap;
+ }
+}
+function add(o){
+ state.budget-=o.p; state.mass+=Math.max(0,o.m); state.energy+=o.e||0;
+ state.comm+=o.c||0; state.science+=o.s?0:(o.c||0); state.safety+=o.s||0;
+}
+function eventHTML(){
+ return `<div class="event"><b>☀️ EVENTO: tormenta solar</b><p>Una tormenta solar afecta las comunicaciones. Elige cómo responder.</p></div>
+ <div class="grid">
+ <div class="card ${choices.event===0?'selected':''}" onclick="chooseEvent(0)"><h3>A. Continuar</h3><p>Sin costo inmediato, pero pierdes comunicación.</p></div>
+ <div class="card ${choices.event===1?'selected':''}" onclick="chooseEvent(1)"><h3>B. Modo ahorro</h3><p>Reduce energía disponible, pero protege la misión.</p></div>
+ <div class="card ${choices.event===2?'selected':''}" onclick="chooseEvent(2)"><h3>C. Esperar</h3><p>Conserva sistemas, pero pierdes tiempo operativo.</p></div>
+ </div>`;
+}
+function chooseEvent(i){choices.event=i;render()}
+function nextStage(){
+ if(stage===0 && choices.objective===null){alert("Selecciona un objetivo.");return}
+ if(stage===3){
+   if(choices.launcher===null){alert("Selecciona un vehículo.");return}
+   if(state.mass>options.launcher[choices.launcher].cap){alert("Ese lanzador no tiene capacidad suficiente para tu nave.");return}
+ }
+ if(stage===4){
+   if(choices.event===null){alert("Selecciona una respuesta al evento.");return}
+   finish();return;
+ }
+ stage++;render();
+}
+function finish(){
+ applyState();
+ let bonus=0, penalty=0;
+ if(choices.event===0){state.comm-=25; penalty+=8}
+ if(choices.event===1){state.energy-=15; state.safety+=10}
+ if(choices.event===2){state.science-=8; state.comm+=5}
+ if(state.budget<0) penalty+=25;
+ if(state.mass>1000) penalty+=25;
+ if(state.energy<35) penalty+=12;
+ if(state.comm<35) penalty+=12;
+ if(state.safety<45) penalty+=12;
+ let score=Math.round(Math.max(0,Math.min(100,
+   state.science*0.45 + state.comm*0.12 + state.safety*0.25 + state.energy*0.10 + bonus - penalty
+ )));
+ let title=score>=80?"🟢 MISIÓN EXITOSA":score>=60?"🟡 MISIÓN PARCIAL":"🔴 MISIÓN EN RIESGO";
+ let text=score>=80?"Excelente equilibrio entre ciencia y recursos.":score>=60?"La misión logró parte de sus objetivos, pero existen áreas que deben rediseñarse.":"Las restricciones superaron la capacidad de la misión. Rediseña y vuelve a intentarlo.";
+ document.getElementById("game").classList.add("hidden");
+ document.getElementById("result").classList.remove("hidden");
+ document.getElementById("score").textContent=score+"/100";
+ document.getElementById("resultTitle").textContent=title;
+ document.getElementById("resultText").textContent=text;
+ document.getElementById("resultCards").innerHTML=`
+ <div class="card"><h3>🔬 Ciencia</h3><p>${Math.round(state.science)}</p></div>
+ <div class="card"><h3>🔋 Energía</h3><p>${Math.round(state.energy)}</p></div>
+ <div class="card"><h3>📡 Comunicación</h3><p>${Math.round(state.comm)}</p></div>
+ <div class="card"><h3>🛡️ Seguridad</h3><p>${Math.round(state.safety)}</p></div>`;
+ const lessons=[];
+ if(state.science<60) lessons.push("Aumenta el valor científico con mejores instrumentos.");
+ if(state.budget<0) lessons.push("El presupuesto fue insuficiente: reduce componentes.");
+ if(state.mass>1000) lessons.push("La masa excedió el límite: simplifica la nave.");
+ if(state.energy<35) lessons.push("La energía es crítica: mejora la generación o reduce cargas.");
+ if(state.comm<35) lessons.push("La comunicación necesita mayor margen de seguridad.");
+ if(!lessons.length) lessons.push("Tu diseño logró un buen equilibrio entre objetivos y restricciones.");
+ document.getElementById("lessons").innerHTML=lessons.map(x=>`<li>${x}</li>`).join("");
+}
+</script>
+</body>
+</html>
